@@ -48,11 +48,20 @@ bool parse(Param* param, int argc, char* argv[]) {
 	return true;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     if(!parse(&param, argc, argv)) return -1;
 
     ST_MAC ap_mac = macFromArgv(argv[2]);
+
+    bool stationMode = false;
+
+    // 타겟해서 때려도 뭔가 주변도 먹통.. Request-to-send 많이 발생.
+    if (argc == 4)
+    {
+        stationMode = true;
+        printf("stationMode Activate\n");
+    }
+
     ST_MAC st_mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -80,8 +89,8 @@ int main(int argc, char* argv[])
             break;
         }
 
-        const ST_RDT rdt = capRdt(packet);
-        const ST_WL wl = capWl(packet+rdt.len);
+        ST_RDT rdt = capRdt(packet);
+        ST_WL wl = capWl(packet+rdt.len);
         if (memcmp(ap_mac.mac, wl.bssid.mac, 6) != 0) continue;
         //printf("target mac detected\n");
         if (!chkBeacon(&wl)) continue;
@@ -95,6 +104,12 @@ int main(int argc, char* argv[])
         int tagLen = (header->caplen - rdt.len - sizeof(ST_WL) - sizeof(ST_BC_COMMON));
         int InsertTagLoc =  header->caplen - tagLen +
             getInsertTagLoc(beaconTagPacket, tagLen, 37);
+
+        // if stationMode on, sa.da = st_mac
+        if (stationMode)
+        {
+            wl.da = st_mac;
+        }
 
         int newPacketLen = header->caplen + 5;
         u_char* newPacket = new u_char[newPacketLen];
@@ -120,7 +135,7 @@ int main(int argc, char* argv[])
         sendCount ++;
         if (sendCount == 1000) sendCount = 999;
         delete[] newPacket;
-        usleep(100000);
+        usleep(400000);
     }
 
     pcap_close(pcap);

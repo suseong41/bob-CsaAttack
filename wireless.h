@@ -18,5 +18,5 @@ struct ST_BC_COMMON
 #pragma pack(pop)
 
 ST_WL capWl(const u_char* packet);
-bool chkBeacon(const ST_WL *target);
+bool chkBeacon(ST_WL *target);
 int getInsertTagLoc(const u_char* beaconTagPacket, int tagTotalLen, int insertTagId);
