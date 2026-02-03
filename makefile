@@ -5,7 +5,7 @@ LDLIBS=-lpcap
 all: csa-attack
 
 csa-attack: main.o radiotap.o wireless.o
-	$(CXX) main.o radiotap.o wireless.o $(LDLIBS) -o airodump
+	$(CXX) main.o radiotap.o wireless.o $(LDLIBS) -o csa-attack
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) -c main.cpp -o main.o
@@ -17,4 +17,4 @@ wireless.o: wireless.cpp wireless.h
 	$(CXX) $(CXXFLAGS) -c wireless.cpp -o wireless.o
 
 clean:
-	rm -f airodump *.o
+	rm -f csa-attack *.o

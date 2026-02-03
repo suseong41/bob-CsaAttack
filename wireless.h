@@ -12,4 +12,4 @@ struct ST_WL
 #pragma pack(pop)
 
 ST_WL capWl(const u_char* packet);
-bool chkBeacon(ST_WL *target);
+bool chkBeacon(const ST_WL *target);

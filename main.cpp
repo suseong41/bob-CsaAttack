@@ -7,8 +7,6 @@
 #include "wireless.h"
 
 // todo: 비콘 프레임 캡처, 5바이트의 채널 스위치 알림 삽입하여 전송하도록.
-
-
 void usage()
 {
     printf("syntax : deauth-attack <interface> <ap mac> [<station mac> [-auth]]\n");
@@ -49,7 +47,7 @@ int main(int argc, char* argv[])
 
     while(true)
     {
-        // page 1: beacon frame capture
+        // phase 1: beacon frame capture
         pcap_pkthdr* header;
         const u_char* packet;
         int res = pcap_next_ex(pcap, &header, &packet);
@@ -63,15 +61,15 @@ int main(int argc, char* argv[])
             break;
         }
 
-        ST_RDT rdt = capRdt(packet);
-        ST_WL wl = capWl(packet+rdt.len);
+        const ST_RDT rdt = capRdt(packet);
+        const ST_WL wl = capWl(packet+rdt.len);
         uint64_t wlLen = sizeof(wl);
         if (!chkBeacon(&wl)) continue;
         printf("beacon frame captured\n");
 
-        // page 2: insert channel switch announcement
+        // phase 2: insert channel switch announcement
 
-        // page 3: send beacon attack frame
+        // phase 3: send beacon attack frame
 
     }
 
