@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include <pcap.h>
 #include <unistd.h>
 #include "mac.h"
@@ -7,6 +7,24 @@
 #include "wireless.h"
 
 // todo: 비콘 프레임 캡처, 5바이트의 채널 스위치 알림 삽입하여 전송하도록.
+
+ST_MAC macFromArgv(char* argv)
+{
+    ST_MAC mac;
+    uint32_t temp[6];
+    int count = sscanf(argv, "%x:%x:%x:%x:%x:%x",
+            &temp[0], &temp[1], &temp[2],
+            &temp[3], &temp[4], &temp[5]);
+    if (count == 6)
+    {
+        for (int i=0; i<6; i++)
+        {
+            mac.mac[i] = (uint8_t)temp[i];
+        }
+    }
+    return mac;
+}
+
 void usage()
 {
     printf("syntax : deauth-attack <interface> <ap mac> [<station mac> [-auth]]\n");
@@ -34,7 +52,12 @@ int main(int argc, char* argv[])
 {
     if(!parse(&param, argc, argv)) return -1;
 
-    ST_MAC ap_mac;
+    ST_MAC ap_mac = macFromArgv(argv[2]);
+    /*
+        printf("%02X:%02X:%02X:%02X:%02X:%02X\n",
+        ap_mac.mac[0], ap_mac.mac[1], ap_mac.mac[2],
+        ap_mac.mac[3], ap_mac.mac[4], ap_mac.mac[5]);
+    */
     ST_MAC st_mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -63,11 +86,20 @@ int main(int argc, char* argv[])
 
         const ST_RDT rdt = capRdt(packet);
         const ST_WL wl = capWl(packet+rdt.len);
-        uint64_t wlLen = sizeof(wl);
+        if (memcmp(ap_mac.mac, wl.bssid.mac, 6) != 0) continue;
+        //printf("target mac detected\n");
         if (!chkBeacon(&wl)) continue;
-        printf("beacon frame captured\n");
+        //printf("beacon frame captured\n");
+        int presentCount = isPresentCount(packet);
+        uint32_t caplen = header->caplen;
+        if (hasFcs(packet, &rdt, presentCount))
+        {
+            //printf("FCS Found\n");
+            caplen = caplen - 4;
+        }
 
         // phase 2: insert channel switch announcement
+        // 패킷을 추가해가면 어떨까?
 
         // phase 3: send beacon attack frame
 

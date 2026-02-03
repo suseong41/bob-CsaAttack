@@ -4,9 +4,9 @@ struct ST_WL
 {
     uint16_t framControl;
     uint16_t duration_id;
-    uint8_t da[6];
-    uint8_t sa[6];
-    uint8_t bssid[6];
+    ST_MAC da;
+    ST_MAC sa;
+    ST_MAC bssid;
     uint16_t seqControl;
 };
 #pragma pack(pop)

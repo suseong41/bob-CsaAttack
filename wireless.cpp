@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string>
 #include <pcap.h>
+#include "mac.h"
 #include "wireless.h"
 
 ST_WL capWl(const u_char* packet)

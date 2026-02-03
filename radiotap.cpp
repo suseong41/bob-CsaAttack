@@ -42,7 +42,7 @@ int isPresentCount(const u_char* packet)
     return count;
 }
 // 메모리 정렬은 규격의 배수로 정해짐..
-bool hasFcs(const u_char* packet, ST_RDT *rdt, int presentCount)
+bool hasFcs(const u_char* packet, const ST_RDT *rdt, int presentCount)
 {
     uint32_t present = rdt->present;
     const u_char* data = (packet+4+4*presentCount);
