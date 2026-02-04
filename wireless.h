@@ -4,8 +4,8 @@ struct ST_WL
 {
     uint16_t framControl;
     uint16_t duration_id;
-    ST_MAC da;
-    ST_MAC sa;
+    ST_MAC receiver;
+    ST_MAC transmitter;
     ST_MAC bssid;
     uint16_t seqControl;
 };

@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
         if (isFcs) remainLen -= 4;
 
         u_char* newPacket = new u_char[newPacketLen];
-        // if stationMode on, sa.da = st_mac
+        // if stationMode on, st.receiver = st_mac
         if (stationMode)
         {
             memcpy(newPacket, packet, rdt.len+4);
