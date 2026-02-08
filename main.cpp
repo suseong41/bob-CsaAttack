@@ -25,8 +25,7 @@ ST_MAC macFromArgv(char* argv)
     return mac;
 }
 
-void usage()
-{
+void usage() {
     printf("syntax : csa-attack <interface> <ap mac> [<station mac>]\n");
     printf("sample : csa-attack mon0 00:11:22:33:44:55 66:77:88:99:AA:BB");
 }
